@@ -36,8 +36,8 @@ class AWSRecognizer extends CustomEventTarget implements SpeechRecognition {
   public continuous: boolean
 
   /** a proxy for new AWSRecognizer(config) */
-  static create(config: Config) {
-    () => new AWSRecognizer(config)
+  public static create(config: Config) {
+     return () => new AWSRecognizer(config)
   }
 
   constructor(config: configArgs) {
@@ -55,7 +55,9 @@ class AWSRecognizer extends CustomEventTarget implements SpeechRecognition {
 
   /** start capturing/transcribing audio */
   start() {
-    if (this.listening) return
+    if (this.listening){
+      return
+    } 
 
     this.dispatchEvent(new Event('start'))
     navigator.mediaDevices.getUserMedia({audio: true, video: false})
