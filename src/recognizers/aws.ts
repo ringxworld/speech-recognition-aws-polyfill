@@ -35,6 +35,8 @@ class AWSRecognizer extends CustomEventTarget implements SpeechRecognition {
   /** whether to continously transribe audio until .stop() is called */
   public continuous: boolean
 
+  public interimResultsString: string
+
   /** a proxy for new AWSRecognizer(config) */
   public static create(config: Config) {
      return () => new AWSRecognizer(config)
@@ -59,6 +61,7 @@ class AWSRecognizer extends CustomEventTarget implements SpeechRecognition {
     if (this.listening){
       return
     } 
+    console.log("Starting media dispatcher")
 
     this.dispatchEvent(new Event('start'))
     navigator.mediaDevices.getUserMedia({audio: true, video: false})
@@ -75,6 +78,17 @@ class AWSRecognizer extends CustomEventTarget implements SpeechRecognition {
     Connection.getInstance()?.close()
     this.listening = false
     this.dispatchEvent(new Event('audioend'))
+    var transcript: string
+    transcript = this.interimResultsString
+    this.dispatchEvent(new AWSSpeechRecognitionEvent('result',
+        [{
+          0: {
+            transcript,
+            confidence: 0.9
+          },
+          isFinal: !this.listening
+        }]
+    this.interimResultsString = "";
   }
 
   /** stop capturing and don't emit any transcibed audio */
@@ -90,16 +104,17 @@ class AWSRecognizer extends CustomEventTarget implements SpeechRecognition {
 
   /** dispatch transcription result */
   private emitResult(transcript: string) {
-    if (!this.continuous && this.listening) {
-      //this.stop()
-    }
+
+    this.interimResultsString = transcript;
+
+    console.log(this.interimResultsString);
 
     if (transcript && transcript.length > 1) {
       this.dispatchEvent(new AWSSpeechRecognitionEvent('result',
         [{
           0: {
             transcript,
-            confidence: 0.7
+            confidence: 0.9
           },
           isFinal: !this.listening
         }]
@@ -240,7 +255,7 @@ class AWSRecognizer extends CustomEventTarget implements SpeechRecognition {
               allPass([
                 propSatisfies((x: number) => x > 0, 'length'),
                 pathSatisfies((x: number) => x > 0, [0, 'Alternatives', 'length']),
-                pathSatisfies(not, [0, 'IsPartial'])
+                //pathSatisfies(not, [0, 'IsPartial'])
               ]),
               // emit the transcription result
               createPipe(
