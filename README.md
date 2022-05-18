@@ -1,18 +1,7 @@
 speech-recognition-aws-polyfill
 ===
+Forked off [speech-recognition-aws-polyfill](https://github.com/ceuk/speech-recognition-aws-polyfill) to get working with  [react-speech-recognition](https://github.com/JamesBrill/react-speech-recognition)
 
-![package size](https://img.shields.io/bundlephobia/min/base-ui)
-![vulnerabilities](https://img.shields.io/snyk/vulnerabilities/npm/speech-recognition-aws-polyfill)
-![](https://img.shields.io/npm/v/speech-recognition-aws-polyfill)
-
-A [polyfill](https://remysharp.com/2010/10/08/what-is-a-polyfill) for the experimental browser [Speech Recognition API](https://developer.mozilla.org/en-US/docs/Web/API/SpeechRecognition) which falls back to [AWS Transcribe](https://aws.amazon.com/transcribe/).
-
-## Features
-
-* Works without a server (browser-only)
-* Supports the [following browsers/versions](https://caniuse.com/stream) (~94% coverage)
-
-**Note:** this is not a polyfill for [`MediaDevices.getUserMedia()`](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia) - check the support table in the link above.
 
 ## Who is it for?
 
@@ -41,112 +30,72 @@ A polyfill also exists at: [/antelow/speech-polyfill](https://github.com/anteloe
 
 Install with `npm i --save speech-recognition-aws-polyfill`
 
-Import into your application: 
+Usage with [react-speech-recognition](https://github.com/JamesBrill/react-speech-recognition)
 ```javascript
-import SpeechRecognitionPolyfill from 'speech-recognition-aws-polyfill'
-```
-
-Or use from the unpkg CDN: 
-```html
-<script src="https://unpkg.com/speech-recognition-aws-polyfill"></script>
-```
-
-Create a new instance of the polyfill:
-
-```javascript
-const recognition = new SpeechRecognitionPolyfill({
-  IdentityPoolId: 'eu-west-1:11111111-1111-1111-1111-1111111111', // your Identity Pool ID
-  region: 'eu-west-1' // your AWS region
-})
-```
-
-Alternatively, use the `create` method.
-
-```javascript
-const SpeechRecognition = SpeechRecognititionPolyfill.create({
-  IdentityPoolId: 'eu-west-1:11111111-1111-1111-1111-1111111111', // your Identity Pool ID
-  region: "eu-west-1"
-});
-
-const recognition = new SpeechRecognition()
-```
-
-You can then interact with `recognition` the same as you would with an instance of [`window.SpeechRecognition`](https://developer.mozilla.org/en-US/docs/Web/API/SpeechRecognition)
-
-The recognizer will stop capturing if it doesn't detect speech for a period. You can also stop manually with the `stop()` method.
-
-## Support Table
-
-### Properties
-
-| Property          | Supported |
-|-------------------|-----------|
-| `lang`            |    Yes    |
-| `grammars`        |     No    |
-| `continuous`      |     Yes    |
-| `interimResults`  |     No    |
-| `maxAlternatives` |     No    |
-| `serviceURI`      |     No    |
-
-### Methods
-
-| Method            | Supported |
-|-------------------|-----------|
-| `abort`           |    Yes    |
-| `start`           |    Yes    |
-| `stop`            |    Yes    |
-
-### Events
-
-| Events        | Supported |
-|---------------|-----------|
-| `audiostart`  |    Yes    |
-| `audioend`    |    Yes    |
-| `start`       |    Yes    |
-| `end`         |    Yes    |
-| `error`       |    Yes    |
-| `nomatch`     |    Yes    |
-| `result`      |    Yes    |
-| `soundstart`  |  Partial  |
-| `soundend`    |  Partial  |
-| `speechstart` |  Partial  |
-| `speechend`   |  Partial  |
-
-
-## Full Example
-
-```javascript
+import React, { useState } from 'react'
+import SpeechTranscribeCallbackComponent from './transcribe/SpeechTranscribeCallback'
+import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 import SpeechRecognitionPolyfill from 'speech-recognition-aws-polyfill'
 
-const recognition = new SpeechRecognitionPolyfill({
-  IdentityPoolId: 'eu-west-1:11111111-1111-1111-1111-1111111111', // your Identity Pool ID
-  region: 'eu-west-1' // your AWS region
-})
-recognition.lang = 'en-US'; // add this to the config above instead if you want
-
-document.body.onclick = function() {
-  recognition.start();
-  console.log('Listening');
+let isChrome = true;
+try{
+  isChrome = !!window.chrome || (!!window.chrome.webstore || !!window.chrome.runtime);
+}catch(err){
+  isChrome = false;
 }
 
-recognition.onresult = function(event) {
-  const { transcript } = event.results[0][0]
-  console.log('Heard: ', transcript)
+
+const SpeechRecognitionPoly = (!isChrome) ? SpeechRecognititionPolyfill.create({
+      IdentityPoolId: '<--- Pool id --->', 
+      region: '<--- region --->',
+      lang: 'en-US'
+    }) : null;
+
+if(SpeechRecognitionPoly !== null){
+  SpeechRecognition.applyPolyfill(SpeechRecognitionPoly);
 }
 
-recognition.onerror = console.error
+
+class SpeechTranscriber extends React.Component{
+    constructor(props){
+      super(props);
+
+      this.state = {
+        broadcasting: false,
+      }
+
+    }
+
+  listenOnce = () => {
+      this.setState({broadcasting: true}, function(){
+        SpeechRecognition.startListening({ continuous: false })
+      });
+  };
+
+  stopListening = () => {
+    console.log("Stoped Listening");
+    this.setState({broadcasting: false}, function(){
+      SpeechRecognition.stopListening();
+    });
+  }
+
+render(){
+    let broadcasting = (this.state.broadcasting) ? "playing" : "inactive";
+    return(
+        <div>
+          <SpeechTranscribeCallbackComponent broadcasting={this.state.broadcasting}/>
+          <button 
+            id="microphone" 
+            className={broadcasting}
+            onMouseDown={this.listenOnce} 
+            onMouseUp={this.stopListening} />   
+        </div>
+
+      );
+  }
+}
+
+export default SpeechTranscriber;
+
 ```
 
-## Roadmap
-
-* Further increase parity between the two implementations by better supporting additional options and events.
-* Build a companion polyfill for speech synthesis (TTS) using AWS Polly
-* Provide a way to output the transcription as an RxJS observable
-
-## Contributing and Bugs
-
-Questions, comments and contributions are very welcome. Just raise an Issue/PR (or, check out the fancy new [Github Discussions](https://github.com/ceuk/speech-recognition-aws-polyfill/discussions) feature)
-
-## License
-
-MIT
