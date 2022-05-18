@@ -55,6 +55,7 @@ class AWSRecognizer extends CustomEventTarget implements SpeechRecognition {
 
   /** start capturing/transcribing audio */
   start() {
+    console.log("start");
     if (this.listening){
       return
     } 
@@ -69,6 +70,7 @@ class AWSRecognizer extends CustomEventTarget implements SpeechRecognition {
 
   /** stop capturing and return any final transcriptions */
   public stop() {
+    console.log("stop");
     MicStream.getInstance()?.end()
     Connection.getInstance()?.close()
     this.listening = false
@@ -77,6 +79,7 @@ class AWSRecognizer extends CustomEventTarget implements SpeechRecognition {
 
   /** stop capturing and don't emit any transcibed audio */
   public abort() {
+    console.log("abort");
     if (this.listening) {
       MicStream.getInstance()?.end()
       Connection.getInstance()?.close()
@@ -88,7 +91,7 @@ class AWSRecognizer extends CustomEventTarget implements SpeechRecognition {
   /** dispatch transcription result */
   private emitResult(transcript: string) {
     if (!this.continuous && this.listening) {
-      this.stop()
+      //this.stop()
     }
 
     if (transcript && transcript.length > 1) {
@@ -96,7 +99,7 @@ class AWSRecognizer extends CustomEventTarget implements SpeechRecognition {
         [{
           0: {
             transcript,
-            confidence: 1
+            confidence: 0.7
           },
           isFinal: !this.listening
         }]
