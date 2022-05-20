@@ -80,14 +80,17 @@ class AWSRecognizer extends CustomEventTarget implements SpeechRecognition {
     this.dispatchEvent(new Event('audioend'))
     var transcript: string
     transcript = this.interimResultsString
-    this.dispatchEvent(new AWSSpeechRecognitionEvent('result',
+    if(transcript !== ""){
+      this.dispatchEvent(new AWSSpeechRecognitionEvent('result',
         [{
           0: {
             transcript,
             confidence: 0.9
           },
           isFinal: !this.listening
-        }]
+        }]);
+    }
+    
     this.interimResultsString = "";
   }
 
